@@ -1,2 +1,0 @@
-# DoggosList
- Zadanie na Studia

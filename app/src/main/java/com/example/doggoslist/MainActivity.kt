@@ -52,54 +52,68 @@ class MainActivity : ComponentActivity() {
                         .background(Color.White),
                     contentWindowInsets = WindowInsets(0)
                 ) { innerPadding ->
+                    val dogList = remember {
+                        mutableStateListOf(
+                            Dog("Reksio", "Kundelek"),
+                            Dog("Burek", "Owczarek niemiecki"),
+                            Dog("Azor", "Labrador"),
+                            Dog("Fafik", "Beagle"),
+                            Dog("Luna", "Golden Retriever"),
+                            Dog("Max", "Husky"),
+                            Dog("Bella", "Pudel"),
+                            Dog("Rocky", "Bulldog"),
+                            Dog("Tosia", "Cocker Spaniel"),
+                            Dog("Kira", "Dalmatyńczyk"),
+                            Dog("Kira", "Dalmatyńczyk"),
+                            Dog("Kira", "Dalmatyńczyk"),
+                            Dog("Kira", "Dalmatyńczyk")
+                        )
+                    }
+                    var filteredDogs by remember { mutableStateOf<List<Dog>>(dogList) }
+                    var dogName by remember { mutableStateOf("") }
+                    var isDuplicate by remember { mutableStateOf(false) }
+
+
                     NavHost(
                         navController = navController,
                         startDestination = "main",
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable("main") {
-                            var dogName by remember { mutableStateOf("") }
-                            val dogList = remember {
-                                mutableStateListOf(
-                                    Dog("Reksio", "Kundelek"),
-                                    Dog("Burek", "Owczarek niemiecki"),
-                                    Dog("Azor", "Labrador"),
-                                    Dog("Fafik", "Beagle"),
-                                    Dog("Luna", "Golden Retriever"),
-                                    Dog("Max", "Husky"),
-                                    Dog("Bella", "Pudel"),
-                                    Dog("Rocky", "Bulldog"),
-                                    Dog("Tosia", "Cocker Spaniel"),
-                                    Dog("Kira", "Dalmatyńczyk"),
-                                    Dog("Kira", "Dalmatyńczyk"),
-                                    Dog("Kira", "Dalmatyńczyk"),
-                                    Dog("Kira", "Dalmatyńczyk")
-                                )
-                            }
-
-                            var filteredDogs by remember { mutableStateOf<List<Dog>>(dogList) }
-
                             Column(modifier = Modifier.background(Color.White)) {
                                 TopBar(navController)
                                 SearchBar(
                                     name = dogName,
-                                    onNameChange = { dogName = it },
+                                    onNameChange = {
+                                        dogName = it
+                                        isDuplicate = false
+                                    },
                                     onSearchClick = {
                                         filteredDogs = dogList.filter { it.name.contains(dogName, ignoreCase = true) }
                                     },
                                     onAddClick = {
                                         if (dogName.isNotBlank()) {
-                                            dogList.add(0, Dog(name = dogName, breed = "Nieznana"))
-                                            filteredDogs = dogList
-                                            dogName = ""
+                                            if (dogList.any { it.name.equals(dogName.trim(), ignoreCase = true) }) {
+                                                isDuplicate = true
+                                            } else {
+                                                dogList.add(0, Dog(name = dogName.trim(), breed = "Nieznana"))
+                                                filteredDogs = dogList
+                                                dogName = ""
+                                                isDuplicate = false
+                                            }
                                         }
-                                    }
+                                    },
+                                    isDuplicate = isDuplicate
                                 )
+
                                 DogList(
                                     dogList = filteredDogs,
                                     onDeleteClick = { dog ->
                                         dogList.remove(dog)
-                                        //filteredDogs = dogList.toList()
+
+                                    },
+                                            onDogClick = { dog ->
+                                        navController.navigate("details/${dog.name}/${dog.breed}")
                                     }
                                 )
 
@@ -112,6 +126,25 @@ class MainActivity : ComponentActivity() {
                         composable("profile") {
                             ProfileScreen { navController.popBackStack() }
                         }
+                        composable("details/{name}/{breed}") { backStackEntry ->
+                            val name = backStackEntry.arguments?.getString("name") ?: ""
+                            val breed = backStackEntry.arguments?.getString("breed") ?: ""
+                            DogDetailScreen(
+                                dog = Dog(name, breed),
+                                onBackClick = { navController.popBackStack() },
+                                onDeleteClick = {
+                                    val dogToDelete = dogList.find { it.name == name && it.breed == breed }
+                                    if (dogToDelete != null) {
+                                        dogList.remove(dogToDelete)
+                                        filteredDogs = dogList
+                                    }
+                                    navController.popBackStack()
+                                }
+
+                            )
+                        }
+
+
                     }
                 }
             }
@@ -148,51 +181,67 @@ fun SearchBar(
     name: String,
     onNameChange: (String) -> Unit,
     onSearchClick: () -> Unit,
-    onAddClick: () -> Unit
+    onAddClick: () -> Unit,
+    isDuplicate: Boolean
 ) {
-    Row(
-        modifier = Modifier
-            .padding(16.dp)
-    ) {
-        TextField(
-            value = name,
-            onValueChange = onNameChange,
-            placeholder = { Text("Dodaj pieska 🐶") },
-            modifier = Modifier.weight(1f),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                disabledContainerColor = Color.White,
-                focusedPlaceholderColor = Color.Gray,
-                unfocusedPlaceholderColor = Color.Black,
-                focusedTextColor = Color.Black
+    Column(modifier = Modifier.padding(16.dp)) {
+        Row {
+            OutlinedTextField(
+                value = name,
+                onValueChange = onNameChange,
+                placeholder = { Text("Dodaj pieska 🐶") },
+                modifier = Modifier.weight(1f),
+                isError = isDuplicate,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = if (isDuplicate) Color(0xFFFFE6E6) else Color.White,
+                    unfocusedContainerColor = if (isDuplicate) Color(0xFFFFE6E6) else Color.White,
+                    focusedBorderColor = if (isDuplicate) Color.Red else Color.Gray,
+                    unfocusedBorderColor = if (isDuplicate) Color.Red else Color.LightGray,
+                    cursorColor = Color.Black,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    errorBorderColor = Color.Red,
+                    errorCursorColor = Color.Red,
+                    errorContainerColor = Color(0xFFFFE6E6)
+                )
+
             )
-        )
-        IconButton(onClick = onSearchClick) {
-            Icon(
-                Icons.Default.Search,
-                contentDescription = "Search",
-                tint = Color.Black,
-                modifier = Modifier.size(32.dp)
-            )
+
+            IconButton(onClick = onSearchClick) {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = Color.Black,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            IconButton(onClick = onAddClick) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Add",
+                    tint = Color.Magenta,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
         }
-        IconButton(onClick = onAddClick) {
-            Icon(
-                Icons.Default.Add,
-                contentDescription = "Add",
-                tint = Color.Magenta,
-                modifier = Modifier.size(32.dp)
+        if (isDuplicate) {
+            Text(
+                text = "Piesek już istnieje!",
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }
 }
 
 
+
 @Composable
-fun DogList(dogList: List<Dog>, onDeleteClick: (Dog) -> Unit) {
+fun DogList(dogList: List<Dog>, onDeleteClick: (Dog) -> Unit, onDogClick: (Dog) -> Unit) {
     LazyColumn {
         items(dogList) { dog ->
-            Column {
+            Column(modifier = Modifier.clickable{onDogClick(dog)}) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -315,3 +364,59 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
         }
     ) {}
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DogDetailScreen(dog: Dog, onBackClick: () -> Unit, onDeleteClick: () -> Unit) {
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Detale") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onDeleteClick) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = colorResource(id = R.color.light_pink),
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black,
+                    actionIconContentColor = Color.Black
+                )
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(top = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xFF6A5ACD), Color(0xFFFFC0CB))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "🐕", fontSize = 24.sp)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(text = dog.name, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(text = dog.breed, fontSize = 16.sp, color = Color.Gray)
+        }
+    }
+}
+
