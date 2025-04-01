@@ -35,7 +35,8 @@ import com.example.doggoslist.ui.theme.DoggosListTheme
 
 data class Dog(
     val name: String,
-    val breed: String
+    val breed: String,
+    var isLiked: Boolean = false
 )
 
 class MainActivity : ComponentActivity() {
@@ -87,6 +88,9 @@ class MainActivity : ComponentActivity() {
                                     onNameChange = {
                                         dogName = it
                                         isDuplicate = false
+                                        if (it.isBlank()) {
+                                            filteredDogs = dogList.sortedByDescending { it.isLiked }
+                                        }
                                     },
                                     onSearchClick = {
                                         filteredDogs = dogList.filter { it.name.contains(dogName, ignoreCase = true) }
@@ -97,7 +101,7 @@ class MainActivity : ComponentActivity() {
                                                 isDuplicate = true
                                             } else {
                                                 dogList.add(0, Dog(name = dogName.trim(), breed = "Nieznana"))
-                                                filteredDogs = dogList
+                                                filteredDogs = dogList.sortedByDescending { it.isLiked }
                                                 dogName = ""
                                                 isDuplicate = false
                                             }
@@ -110,12 +114,17 @@ class MainActivity : ComponentActivity() {
                                     dogList = filteredDogs,
                                     onDeleteClick = { dog ->
                                         dogList.remove(dog)
-
+                                        filteredDogs = dogList.sortedByDescending { it.isLiked }
                                     },
-                                            onDogClick = { dog ->
+                                    onDogClick = { dog ->
                                         navController.navigate("details/${dog.name}/${dog.breed}")
+                                    },
+                                    onHeartClick = { dog ->
+                                        dog.isLiked = !dog.isLiked
+                                        filteredDogs = dogList.sortedByDescending { it.isLiked }
                                     }
                                 )
+
 
 
                             }
@@ -207,7 +216,7 @@ fun SearchBar(
 
             )
 
-            IconButton(onClick = onSearchClick) {
+            IconButton(onClick = onSearchClick, enabled = name.isNotBlank()) {
                 Icon(
                     Icons.Default.Search,
                     contentDescription = "Search",
@@ -215,7 +224,7 @@ fun SearchBar(
                     modifier = Modifier.size(32.dp)
                 )
             }
-            IconButton(onClick = onAddClick) {
+            IconButton(onClick = onAddClick, enabled = name.isNotBlank()) {
                 Icon(
                     Icons.Default.Add,
                     contentDescription = "Add",
@@ -238,7 +247,7 @@ fun SearchBar(
 
 
 @Composable
-fun DogList(dogList: List<Dog>, onDeleteClick: (Dog) -> Unit, onDogClick: (Dog) -> Unit) {
+fun DogList(dogList: List<Dog>, onDeleteClick: (Dog) -> Unit, onDogClick: (Dog) -> Unit, onHeartClick: (Dog) -> Unit) {
     LazyColumn {
         items(dogList) { dog ->
             Column(modifier = Modifier.clickable{onDogClick(dog)}) {
@@ -294,10 +303,12 @@ fun DogList(dogList: List<Dog>, onDeleteClick: (Dog) -> Unit, onDogClick: (Dog) 
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Favorite,
+                                imageVector = if (dog.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Heart",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
+                                tint = if (dog.isLiked) Color.Red else Color.Gray,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clickable { onHeartClick(dog) }
                             )
                         }
 
