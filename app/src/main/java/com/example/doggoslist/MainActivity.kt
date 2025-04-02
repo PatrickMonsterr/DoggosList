@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -70,10 +71,19 @@ class MainActivity : ComponentActivity() {
                             Dog("Kira", "Dalmatyńczyk")
                         )
                     }
-                    var filteredDogs by remember { mutableStateOf<List<Dog>>(dogList) }
                     var dogName by remember { mutableStateOf("") }
                     var isDuplicate by remember { mutableStateOf(false) }
 
+                    val filteredDogs by remember(dogList, dogName) {
+                        derivedStateOf {
+                            if (dogName.isBlank()) {
+                                dogList.sortedByDescending { it.isLiked }
+                            } else {
+                                dogList.filter { it.name.contains(dogName, ignoreCase = true) }
+                                    .sortedByDescending { it.isLiked }
+                            }
+                        }
+                    }
 
                     NavHost(
                         navController = navController,
@@ -88,20 +98,24 @@ class MainActivity : ComponentActivity() {
                                     onNameChange = {
                                         dogName = it
                                         isDuplicate = false
-                                        if (it.isBlank()) {
-                                            filteredDogs = dogList.sortedByDescending { it.isLiked }
-                                        }
                                     },
                                     onSearchClick = {
-                                        filteredDogs = dogList.filter { it.name.contains(dogName, ignoreCase = true) }
+                                        // filteredDogs jest obliczane w derivedStateOf
                                     },
                                     onAddClick = {
                                         if (dogName.isNotBlank()) {
-                                            if (dogList.any { it.name.equals(dogName.trim(), ignoreCase = true) }) {
+                                            if (dogList.any {
+                                                    it.name.equals(
+                                                        dogName.trim(),
+                                                        ignoreCase = true
+                                                    )
+                                                }) {
                                                 isDuplicate = true
                                             } else {
-                                                dogList.add(0, Dog(name = dogName.trim(), breed = "Nieznana"))
-                                                filteredDogs = dogList.sortedByDescending { it.isLiked }
+                                                dogList.add(
+                                                    0,
+                                                    Dog(name = dogName.trim(), breed = "Nieznana")
+                                                )
                                                 dogName = ""
                                                 isDuplicate = false
                                             }
@@ -114,19 +128,17 @@ class MainActivity : ComponentActivity() {
                                     dogList = filteredDogs,
                                     onDeleteClick = { dog ->
                                         dogList.remove(dog)
-                                        filteredDogs = dogList.sortedByDescending { it.isLiked }
                                     },
                                     onDogClick = { dog ->
                                         navController.navigate("details/${dog.name}/${dog.breed}")
                                     },
                                     onHeartClick = { dog ->
-                                        dog.isLiked = !dog.isLiked
-                                        filteredDogs = dogList.sortedByDescending { it.isLiked }
+                                        val index = dogList.indexOf(dog)
+                                        if (index != -1) {
+                                            dogList[index] = dog.copy(isLiked = !dog.isLiked)
+                                        }
                                     }
                                 )
-
-
-
                             }
                         }
                         composable("settings") {
@@ -142,24 +154,22 @@ class MainActivity : ComponentActivity() {
                                 dog = Dog(name, breed),
                                 onBackClick = { navController.popBackStack() },
                                 onDeleteClick = {
-                                    val dogToDelete = dogList.find { it.name == name && it.breed == breed }
+                                    val dogToDelete =
+                                        dogList.find { it.name == name && it.breed == breed }
                                     if (dogToDelete != null) {
                                         dogList.remove(dogToDelete)
-                                        filteredDogs = dogList
                                     }
                                     navController.popBackStack()
                                 }
-
                             )
                         }
-
-
                     }
                 }
             }
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -215,15 +225,6 @@ fun SearchBar(
                 )
 
             )
-
-            IconButton(onClick = onSearchClick, enabled = name.isNotBlank()) {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = Color.Black,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
             IconButton(onClick = onAddClick, enabled = name.isNotBlank()) {
                 Icon(
                     Icons.Default.Add,
@@ -231,26 +232,33 @@ fun SearchBar(
                     tint = Color.Magenta,
                     modifier = Modifier.size(32.dp)
                 )
+
+
             }
+
         }
-        if (isDuplicate) {
-            Text(
-                text = "Piesek już istnieje!",
-                color = Color.Red,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
+    }
+    if (isDuplicate) {
+        Text(
+            text = "Piesek już istnieje!",
+            color = Color.Red,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 
 
-
 @Composable
-fun DogList(dogList: List<Dog>, onDeleteClick: (Dog) -> Unit, onDogClick: (Dog) -> Unit, onHeartClick: (Dog) -> Unit) {
+fun DogList(
+    dogList: List<Dog>,
+    onDeleteClick: (Dog) -> Unit,
+    onDogClick: (Dog) -> Unit,
+    onHeartClick: (Dog) -> Unit
+) {
     LazyColumn {
         items(dogList) { dog ->
-            Column(modifier = Modifier.clickable{onDogClick(dog)}) {
+            Column(modifier = Modifier.clickable { onDogClick(dog) }) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -428,6 +436,78 @@ fun DogDetailScreen(dog: Dog, onBackClick: () -> Unit, onDeleteClick: () -> Unit
             Text(text = dog.name, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Text(text = dog.breed, fontSize = 16.sp, color = Color.Gray)
         }
+    }
+}
+
+@Composable
+
+fun contentScreen(navController: NavHostController) {
+    val dogList = remember {
+        mutableStateListOf(
+            Dog("Reksio", "Kundelek"),
+            Dog("Burek", "Owczarek niemiecki"),
+            Dog("Azor", "Labrador"),
+            Dog("Fafik", "Beagle"),
+            Dog("Luna", "Golden Retriever"),
+            Dog("Max", "Husky"),
+            Dog("Bella", "Pudel"),
+            Dog("Rocky", "Bulldog"),
+            Dog("Tosia", "Cocker Spaniel"),
+            Dog("Kira", "Dalmatyńczyk"),
+            Dog("Kira", "Dalmatyńczyk"),
+            Dog("Kira", "Dalmatyńczyk"),
+            Dog("Kira", "Dalmatyńczyk")
+        )
+    }
+    var filteredDogs by remember { mutableStateOf<List<Dog>>(dogList) }
+    var dogName by remember { mutableStateOf("") }
+    var isDuplicate by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.background(Color.White)) {
+        TopBar(navController)
+        SearchBar(
+            name = dogName,
+            onNameChange = {
+                dogName = it
+                isDuplicate = false
+                if (it.isBlank()) {
+                    filteredDogs = dogList.sortedByDescending { it.isLiked }
+                }
+            },
+            onSearchClick = {
+                filteredDogs = dogList.filter { it.name.contains(dogName, ignoreCase = true) }
+            },
+            onAddClick = {
+                if (dogName.isNotBlank()) {
+                    if (dogList.any { it.name.equals(dogName.trim(), ignoreCase = true) }) {
+                        isDuplicate = true
+                    } else {
+                        dogList.add(0, Dog(name = dogName.trim(), breed = "Nieznana"))
+                        filteredDogs = dogList.sortedByDescending { it.isLiked }
+                        dogName = ""
+                        isDuplicate = false
+                    }
+                }
+            },
+            isDuplicate = isDuplicate
+        )
+
+        DogList(
+            dogList = filteredDogs,
+            onDeleteClick = { dog ->
+                dogList.remove(dog)
+                filteredDogs = dogList.sortedByDescending { it.isLiked }
+            },
+            onDogClick = { dog ->
+                navController.navigate("details/${dog.name}/${dog.breed}")
+            },
+            onHeartClick = { dog ->
+                dog.isLiked = !dog.isLiked
+                filteredDogs = dogList.sortedByDescending { it.isLiked }
+            }
+        )
+
+
     }
 }
 
