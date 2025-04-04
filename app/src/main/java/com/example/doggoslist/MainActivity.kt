@@ -1,5 +1,15 @@
 package com.example.doggoslist
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -40,8 +50,10 @@ import com.example.doggoslist.model.DogViewModel
 data class Dog(
     val name: String,
     val breed: String,
-    var isLiked: Boolean = false
+    var isLiked: Boolean = false,
+    var imageUrl: String? = null
 )
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,8 +88,9 @@ class MainActivity : ComponentActivity() {
                         composable("details/{name}/{breed}") { backStackEntry ->
                             val name = backStackEntry.arguments?.getString("name") ?: ""
                             val breed = backStackEntry.arguments?.getString("breed") ?: ""
+                            val dog = dogViewModel.dogs.find { it.name == name && it.breed == breed } ?: Dog(name, breed)
                             DogDetailScreen(
-                                dog = Dog(name, breed),
+                                dog = dog,
                                 onBackClick = { navController.popBackStack() },
                                 onDeleteClick = {
                                     val dogToDelete = dogViewModel.dogs.find { it.name == name && it.breed == breed }
@@ -89,6 +102,17 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+                        composable("addDog") {
+                            AddDogScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onAddDog = { name, breed ->
+                                    dogViewModel.addDog(name, breed)
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+
                     }
                 }
             }
@@ -150,7 +174,7 @@ fun SearchBar(
                 )
 
             )
-            IconButton(onClick = onAddClick, enabled = name.isNotBlank()) {
+            IconButton(onClick = onAddClick) {
                 Icon(
                     Icons.Default.Add,
                     contentDescription = "Add",
@@ -203,7 +227,13 @@ fun DogList(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "🐕", fontSize = 24.sp)
+                            AsyncImage(
+                                model = dog.imageUrl,
+                                contentDescription = "Dog image",
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                            )
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
@@ -353,8 +383,17 @@ fun DogDetailScreen(dog: Dog, onBackClick: () -> Unit, onDeleteClick: () -> Unit
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🐕", fontSize = 24.sp)
+                if (dog.imageUrl != null) {
+                    AsyncImage(
+                        model = dog.imageUrl,
+                        contentDescription = "Dog Image",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(text = "🐕", fontSize = 48.sp)
+                }
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -371,9 +410,12 @@ fun DogListScreen(navController: NavHostController, viewModel: DogViewModel) {
         SearchBar(
             name = viewModel.dogName,
             onNameChange = viewModel::onNameChange,
-            onAddClick = viewModel::addDog,
+            onAddClick = {
+                navController.navigate("addDog")
+            },
             isDuplicate = viewModel.isDuplicate
         )
+
 
         DogList(
             dogList = viewModel.filteredDogs,
@@ -383,6 +425,80 @@ fun DogListScreen(navController: NavHostController, viewModel: DogViewModel) {
             },
             onHeartClick = viewModel::toggleLike
         )
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddDogScreen(
+    onBackClick: () -> Unit,
+    onAddDog: (String, String) -> Unit
+) {
+    var name by remember { mutableStateOf(TextFieldValue("")) }
+    var breed by remember { mutableStateOf(TextFieldValue("")) }
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Dodaj Psa") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = colorResource(id = R.color.light_pink),
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black
+                )
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(text = "🐶", fontSize = 120.sp)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Imię") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = breed,
+                onValueChange = { breed = it },
+                label = { Text("Rasa") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    if (name.text.isNotBlank() && breed.text.isNotBlank()) {
+                        onAddDog(name.text.trim(), breed.text.trim())
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text("Dodaj")
+            }
+        }
     }
 }
 

@@ -2,21 +2,14 @@ package com.example.doggoslist.model
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import com.example.doggoslist.Dog
+import androidx.lifecycle.viewModelScope
+import dogApi
+import kotlinx.coroutines.launch
 
 class DogViewModel : ViewModel() {
 
-    private val _dogs = mutableStateListOf(
-        Dog("Reksio", "Kundelek"),
-        Dog("Burek", "Owczarek niemiecki"),
-        Dog("Azor", "Labrador"),
-        Dog("Fafik", "Beagle"),
-        Dog("Luna", "Golden Retriever"),
-        Dog("Max", "Husky"),
-        Dog("Bella", "Pudel"),
-        Dog("Rocky", "Bulldog"),
-        Dog("Tosia", "Cocker Spaniel"),
-        Dog("Kira", "Dalmatyńczyk")
-    )
+    private val _dogs = mutableStateListOf<Dog>()
+
     val dogs: List<Dog> get() = _dogs
 
     var dogName by mutableStateOf("")
@@ -38,18 +31,17 @@ class DogViewModel : ViewModel() {
         isDuplicate = false
     }
 
-    fun addDog() {
-        val name = dogName.trim()
-        if (name.isNotBlank()) {
-            if (_dogs.any { it.name.equals(name, ignoreCase = true) }) {
-                isDuplicate = true
-            } else {
-                _dogs.add(0, Dog(name, "Nieznana"))
-                dogName = ""
-                isDuplicate = false
+    fun addDog(name: String, breed: String) {
+        viewModelScope.launch {
+            val imageUrl = try {
+                dogApi.getRandomDogImage().message
+            } catch (e: Exception) {
+                null
             }
+            _dogs.add(0, Dog(name = name, breed = breed, imageUrl = imageUrl))
         }
     }
+
 
     fun deleteDog(dog: Dog) {
         _dogs.remove(dog)
