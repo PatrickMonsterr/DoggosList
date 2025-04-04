@@ -33,6 +33,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.doggoslist.ui.theme.DoggosListTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.doggoslist.model.DogViewModel
+
 
 data class Dog(
     val name: String,
@@ -48,99 +51,22 @@ class MainActivity : ComponentActivity() {
         setContent {
             DoggosListTheme {
                 val navController = rememberNavController()
+                val dogViewModel: DogViewModel = viewModel()
                 Scaffold(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.White),
                     contentWindowInsets = WindowInsets(0)
                 ) { innerPadding ->
-                    val dogList = remember {
-                        mutableStateListOf(
-                            Dog("Reksio", "Kundelek"),
-                            Dog("Burek", "Owczarek niemiecki"),
-                            Dog("Azor", "Labrador"),
-                            Dog("Fafik", "Beagle"),
-                            Dog("Luna", "Golden Retriever"),
-                            Dog("Max", "Husky"),
-                            Dog("Bella", "Pudel"),
-                            Dog("Rocky", "Bulldog"),
-                            Dog("Tosia", "Cocker Spaniel"),
-                            Dog("Kira", "Dalmatyńczyk"),
-                            Dog("Kira", "Dalmatyńczyk"),
-                            Dog("Kira", "Dalmatyńczyk"),
-                            Dog("Kira", "Dalmatyńczyk")
-                        )
-                    }
-                    var dogName by remember { mutableStateOf("") }
-                    var isDuplicate by remember { mutableStateOf(false) }
-
-                    val filteredDogs by remember(dogList, dogName) {
-                        derivedStateOf {
-                            if (dogName.isBlank()) {
-                                dogList.sortedByDescending { it.isLiked }
-                            } else {
-                                dogList.filter { it.name.contains(dogName, ignoreCase = true) }
-                                    .sortedByDescending { it.isLiked }
-                            }
-                        }
-                    }
-
                     NavHost(
                         navController = navController,
                         startDestination = "main",
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable("main") {
-                            Column(modifier = Modifier.background(Color.White)) {
-                                TopBar(navController)
-                                SearchBar(
-                                    name = dogName,
-                                    onNameChange = {
-                                        dogName = it
-                                        isDuplicate = false
-                                    },
-                                    onSearchClick = {
-                                        // filteredDogs jest obliczane w derivedStateOf
-                                    },
-                                    onAddClick = {
-                                        if (dogName.isNotBlank()) {
-                                            if (dogList.any {
-                                                    it.name.equals(
-                                                        dogName.trim(),
-                                                        ignoreCase = true
-                                                    )
-                                                }) {
-                                                isDuplicate = true
-                                            } else {
-                                                dogList.add(
-                                                    0,
-                                                    Dog(name = dogName.trim(), breed = "Nieznana")
-                                                )
-                                                dogName = ""
-                                                isDuplicate = false
-                                            }
-                                        }
-                                    },
-                                    isDuplicate = isDuplicate
-                                )
-
-                                DogList(
-                                    dogList = filteredDogs,
-                                    onDeleteClick = { dog ->
-                                        dogList.remove(dog)
-                                    },
-                                    onDogClick = { dog ->
-                                        navController.navigate("details/${dog.name}/${dog.breed}")
-                                    },
-                                    onHeartClick = { dog ->
-                                        val index = dogList.indexOf(dog)
-                                        if (index != -1) {
-                                            dogList[index] = dog.copy(isLiked = !dog.isLiked)
-                                        }
-                                    }
-                                )
-                            }
+                            DogListScreen(navController = navController, viewModel = dogViewModel)
                         }
+
                         composable("settings") {
                             SettingsScreen { navController.popBackStack() }
                         }
@@ -154,11 +80,11 @@ class MainActivity : ComponentActivity() {
                                 dog = Dog(name, breed),
                                 onBackClick = { navController.popBackStack() },
                                 onDeleteClick = {
-                                    val dogToDelete =
-                                        dogList.find { it.name == name && it.breed == breed }
+                                    val dogToDelete = dogViewModel.dogs.find { it.name == name && it.breed == breed }
                                     if (dogToDelete != null) {
-                                        dogList.remove(dogToDelete)
+                                        dogViewModel.deleteDog(dogToDelete)
                                     }
+
                                     navController.popBackStack()
                                 }
                             )
@@ -173,7 +99,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar(navController: androidx.navigation.NavHostController) {
+fun TopBar(navController: NavHostController) {
     CenterAlignedTopAppBar(
         title = { Text("Doggos") },
         navigationIcon = {
@@ -199,7 +125,6 @@ fun TopBar(navController: androidx.navigation.NavHostController) {
 fun SearchBar(
     name: String,
     onNameChange: (String) -> Unit,
-    onSearchClick: () -> Unit,
     onAddClick: () -> Unit,
     isDuplicate: Boolean
 ) {
@@ -438,76 +363,27 @@ fun DogDetailScreen(dog: Dog, onBackClick: () -> Unit, onDeleteClick: () -> Unit
         }
     }
 }
-
 @Composable
-
-fun contentScreen(navController: NavHostController) {
-    val dogList = remember {
-        mutableStateListOf(
-            Dog("Reksio", "Kundelek"),
-            Dog("Burek", "Owczarek niemiecki"),
-            Dog("Azor", "Labrador"),
-            Dog("Fafik", "Beagle"),
-            Dog("Luna", "Golden Retriever"),
-            Dog("Max", "Husky"),
-            Dog("Bella", "Pudel"),
-            Dog("Rocky", "Bulldog"),
-            Dog("Tosia", "Cocker Spaniel"),
-            Dog("Kira", "Dalmatyńczyk"),
-            Dog("Kira", "Dalmatyńczyk"),
-            Dog("Kira", "Dalmatyńczyk"),
-            Dog("Kira", "Dalmatyńczyk")
-        )
-    }
-    var filteredDogs by remember { mutableStateOf<List<Dog>>(dogList) }
-    var dogName by remember { mutableStateOf("") }
-    var isDuplicate by remember { mutableStateOf(false) }
-
+fun DogListScreen(navController: NavHostController, viewModel: DogViewModel) {
     Column(modifier = Modifier.background(Color.White)) {
         TopBar(navController)
+
         SearchBar(
-            name = dogName,
-            onNameChange = {
-                dogName = it
-                isDuplicate = false
-                if (it.isBlank()) {
-                    filteredDogs = dogList.sortedByDescending { it.isLiked }
-                }
-            },
-            onSearchClick = {
-                filteredDogs = dogList.filter { it.name.contains(dogName, ignoreCase = true) }
-            },
-            onAddClick = {
-                if (dogName.isNotBlank()) {
-                    if (dogList.any { it.name.equals(dogName.trim(), ignoreCase = true) }) {
-                        isDuplicate = true
-                    } else {
-                        dogList.add(0, Dog(name = dogName.trim(), breed = "Nieznana"))
-                        filteredDogs = dogList.sortedByDescending { it.isLiked }
-                        dogName = ""
-                        isDuplicate = false
-                    }
-                }
-            },
-            isDuplicate = isDuplicate
+            name = viewModel.dogName,
+            onNameChange = viewModel::onNameChange,
+            onAddClick = viewModel::addDog,
+            isDuplicate = viewModel.isDuplicate
         )
 
         DogList(
-            dogList = filteredDogs,
-            onDeleteClick = { dog ->
-                dogList.remove(dog)
-                filteredDogs = dogList.sortedByDescending { it.isLiked }
-            },
+            dogList = viewModel.filteredDogs,
+            onDeleteClick = viewModel::deleteDog,
             onDogClick = { dog ->
                 navController.navigate("details/${dog.name}/${dog.breed}")
             },
-            onHeartClick = { dog ->
-                dog.isLiked = !dog.isLiked
-                filteredDogs = dogList.sortedByDescending { it.isLiked }
-            }
+            onHeartClick = viewModel::toggleLike
         )
-
-
     }
 }
+
 
