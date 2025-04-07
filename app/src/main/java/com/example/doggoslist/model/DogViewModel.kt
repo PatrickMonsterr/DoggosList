@@ -10,6 +10,12 @@ class DogViewModel : ViewModel() {
 
     private val _dogs = mutableStateListOf<Dog>()
 
+    var isLoading by mutableStateOf(false)
+        private set
+
+    var isError by mutableStateOf(false)
+        private set
+
     val dogs: List<Dog> get() = _dogs
 
     var dogName by mutableStateOf("")
@@ -33,14 +39,22 @@ class DogViewModel : ViewModel() {
 
     fun addDog(name: String, breed: String) {
         viewModelScope.launch {
-            val imageUrl = try {
-                dogApi.getRandomDogImage().message
+            isLoading = true
+            isError = false
+
+            try {
+                val imageUrl = dogApi.getRandomDogImage().message
+                _dogs.add(0, Dog(name = name, breed = breed, imageUrl = imageUrl))
+                isLoading = false
             } catch (e: Exception) {
-                null
+                isError = true
+                isLoading = false
             }
-            _dogs.add(0, Dog(name = name, breed = breed, imageUrl = imageUrl))
         }
     }
+
+
+
 
 
     fun deleteDog(dog: Dog) {
@@ -53,4 +67,6 @@ class DogViewModel : ViewModel() {
             _dogs[index] = dog.copy(isLiked = !dog.isLiked)
         }
     }
+
+
 }
