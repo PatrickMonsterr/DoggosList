@@ -48,6 +48,7 @@ import com.example.doggoslist.ui.theme.DoggosListTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.request.ImageRequest
 import com.example.doggoslist.model.DogViewModel
+import com.example.doggoslist.model.addDogViewModel
 import com.example.doggoslist.ui.screens.MainScreen.TopBar
 import com.example.doggoslist.ui.screens.MainScreen.SearchBar
 import com.example.doggoslist.ui.screens.MainScreen.DogList
@@ -157,6 +158,17 @@ fun DogListScreen(navController: NavHostController, viewModel: DogViewModel) {
             onHeartClick = viewModel::toggleLike
         )
     }
+}
+
+@Composable
+fun AddDogScreen(navController: NavHostController, viewModel: addDogViewModel) {
+    AddDogScreen(
+        onBackClick = { navController.popBackStack() },
+        onAddDog = { name, breed ->
+           // addDogViewModel.addDog(name, breed)
+            navController.popBackStack()
+        }
+    )
 }
 
 

@@ -40,37 +40,37 @@ fun AddDogScreen(
     var name by remember { mutableStateOf(TextFieldValue("")) }
     var breed by remember { mutableStateOf(TextFieldValue("")) }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Dodaj Psa") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = colorResource(id = R.color.light_pink),
-                    titleContentColor = Color.Black,
-                    navigationIconContentColor = Color.Black
-                )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        CenterAlignedTopAppBar(
+            title = { Text("Dodaj Psa") },
+            navigationIcon = {
+                IconButton(onClick = onBackClick) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = colorResource(id = R.color.light_pink),
+                titleContentColor = Color.Black,
+                navigationIconContentColor = Color.Black
             )
-        }
-    ) { innerPadding ->
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
+                .padding(top = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
             Text(text = "🐶", fontSize = 120.sp)
 
             Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
+                singleLine = true,
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Imię") },
@@ -80,6 +80,7 @@ fun AddDogScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
+                singleLine = true,
                 value = breed,
                 onValueChange = { breed = it },
                 label = { Text("Rasa") },

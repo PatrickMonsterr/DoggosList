@@ -44,33 +44,34 @@ import com.example.doggoslist.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DogDetailScreen(dog: Dog, onBackClick: () -> Unit, onDeleteClick: () -> Unit) {
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Detale") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onDeleteClick) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = colorResource(id = R.color.light_pink),
-                    titleContentColor = Color.Black,
-                    navigationIconContentColor = Color.Black,
-                    actionIconContentColor = Color.Black
-                )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        CenterAlignedTopAppBar(
+            title = { Text("Detale") },
+            navigationIcon = {
+                IconButton(onClick = onBackClick) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+            actions = {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                }
+            },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = colorResource(id = R.color.light_pink),
+                titleContentColor = Color.Black,
+                navigationIconContentColor = Color.Black,
+                actionIconContentColor = Color.Black
             )
-        }
-    ) { innerPadding ->
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(top = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -80,7 +81,6 @@ fun DogDetailScreen(dog: Dog, onBackClick: () -> Unit, onDeleteClick: () -> Unit
                 Text(text = "🐕", fontSize = 48.sp)
             }
 
-
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(text = dog.name, fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -88,6 +88,7 @@ fun DogDetailScreen(dog: Dog, onBackClick: () -> Unit, onDeleteClick: () -> Unit
         }
     }
 }
+
 
 @Composable
 fun DogImageScreen(imageUrl: String, modifier: Modifier = Modifier) {
