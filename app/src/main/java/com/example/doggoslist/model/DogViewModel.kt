@@ -8,20 +8,19 @@ import kotlinx.coroutines.launch
 
 class DogViewModel : ViewModel() {
 
-    private val _dogs = mutableStateListOf<Dog>()
+    public val _dogs = mutableStateListOf<Dog>()
     var isLoading by mutableStateOf(false)
         private set
 
     var isError by mutableStateOf(false)
         private set
-    fun addDog(name: String, breed: String) {
+    fun addDog(name: String, breed: String, url: String?) {
         viewModelScope.launch {
             isLoading = true
             isError = false
 
             try {
-                val imageUrl = dogApi.getRandomDogImage().message
-                //_dogs.add(0, Dog(name = name, breed = breed, imageUrl = imageUrl))
+                _dogs.add(0, Dog(name = name, breed = breed, imageUrl = url))
                 isLoading = false
             } catch (e: Exception) {
                 isError = true
@@ -29,6 +28,7 @@ class DogViewModel : ViewModel() {
             }
         }
     }
+
 
     val dogs: List<Dog> get() = _dogs
 

@@ -1,44 +1,15 @@
 package com.example.doggoslist
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -46,9 +17,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.doggoslist.ui.theme.DoggosListTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.request.ImageRequest
+import com.example.doggoslist.model.AddDogViewModel
+import com.example.doggoslist.model.DogDetailViewModel
 import com.example.doggoslist.model.DogViewModel
-import com.example.doggoslist.model.addDogViewModel
+//import com.example.doggoslist.model.addDogViewModel
 import com.example.doggoslist.ui.screens.MainScreen.TopBar
 import com.example.doggoslist.ui.screens.MainScreen.SearchBar
 import com.example.doggoslist.ui.screens.MainScreen.DogList
@@ -76,6 +48,7 @@ class MainActivity : ComponentActivity() {
             DoggosListTheme {
                 val navController = rememberNavController()
                 val dogViewModel: DogViewModel = viewModel()
+                val addDogViewModel: AddDogViewModel = viewModel()
                 Scaffold(
                     modifier = Modifier
                         .fillMaxSize()
@@ -100,29 +73,41 @@ class MainActivity : ComponentActivity() {
                         composable("details/{name}/{breed}") { backStackEntry ->
                             val name = backStackEntry.arguments?.getString("name") ?: ""
                             val breed = backStackEntry.arguments?.getString("breed") ?: ""
-                            val dog = dogViewModel.dogs.find { it.name == name && it.breed == breed } ?: Dog(name, breed)
+
+                            val dogDetailViewModel: DogDetailViewModel = viewModel()
+                            val dog by dogDetailViewModel.dogState.collectAsState()
+
+                            LaunchedEffect(Unit) {
+                                if (dog == null) {
+                                    val foundDog = dogViewModel.dogs.find { it.name == name && it.breed == breed }
+                                    dogDetailViewModel.setDog(foundDog ?: Dog(name, breed))
+                                }
+                            }
+
                             DogDetailScreen(
-                                dog = dog,
+                                dog = dog ?: Dog(name, breed),
                                 onBackClick = { navController.popBackStack() },
                                 onDeleteClick = {
-                                    val dogToDelete = dogViewModel.dogs.find { it.name == name && it.breed == breed }
-                                    if (dogToDelete != null) {
-                                        dogViewModel.deleteDog(dogToDelete)
+                                    dog?.let {
+                                        dogViewModel.deleteDog(it)
                                     }
-
                                     navController.popBackStack()
                                 }
                             )
                         }
+
                         composable("addDog") {
                             AddDogScreen(
                                 onBackClick = { navController.popBackStack() },
-                                onAddDog = { name, breed ->
-                                    dogViewModel.addDog(name, breed)
+                                addDogViewModel = addDogViewModel,
+                                onAddDog = { name, breed, imageUrl ->
+                                    dogViewModel.addDog(name, breed, imageUrl)
+                                    addDogViewModel.fetchRandomImage()
                                     navController.popBackStack()
                                 }
                             )
                         }
+
 
 
                     }
@@ -160,16 +145,8 @@ fun DogListScreen(navController: NavHostController, viewModel: DogViewModel) {
     }
 }
 
-@Composable
-fun AddDogScreen(navController: NavHostController, viewModel: addDogViewModel) {
-    AddDogScreen(
-        onBackClick = { navController.popBackStack() },
-        onAddDog = { name, breed ->
-           // addDogViewModel.addDog(name, breed)
-            navController.popBackStack()
-        }
-    )
-}
+
+
 
 
 
