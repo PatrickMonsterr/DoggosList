@@ -1,36 +1,38 @@
 package com.example.doggoslist.model
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.doggoslist.Dog
 import androidx.lifecycle.viewModelScope
-import dogApi
+import com.example.doggoslist.Dog
 import kotlinx.coroutines.launch
 
 class DogViewModel : ViewModel() {
 
-    public val _dogs = mutableStateListOf<Dog>()
-    var isLoading by mutableStateOf(false)
-        private set
-
-    var isError by mutableStateOf(false)
-        private set
+    val ddogs = mutableStateListOf<Dog>()
+//    var isLoading by mutableStateOf(false)
+//        private set
+//
+//    var isError by mutableStateOf(false)
+//        private set
     fun addDog(name: String, breed: String, url: String?) {
         viewModelScope.launch {
-            isLoading = true
-            isError = false
+//            isLoading = true
+//            isError = false
 
             try {
-                _dogs.add(0, Dog(name = name, breed = breed, imageUrl = url))
-                isLoading = false
-            } catch (e: Exception) {
-                isError = true
-                isLoading = false
+                ddogs.add(0, Dog(name = name, breed = breed, imageUrl = url))
+//                isLoading = false
+            } catch (_: Exception) {
+//                isError = true
+//                isLoading = false
             }
         }
     }
 
 
-    val dogs: List<Dog> get() = _dogs
+    val dogs: List<Dog> get() = ddogs
 
     var dogName by mutableStateOf("")
         private set
@@ -40,9 +42,9 @@ class DogViewModel : ViewModel() {
 
     val filteredDogs: List<Dog>
         get() = if (dogName.isBlank()) {
-            _dogs.sortedByDescending { it.isLiked }
+            ddogs.sortedByDescending { it.isLiked }
         } else {
-            _dogs.filter { it.name.contains(dogName, ignoreCase = true) }
+            ddogs.filter { it.name.contains(dogName, ignoreCase = true) }
                 .sortedByDescending { it.isLiked }
         }
 
@@ -52,19 +54,14 @@ class DogViewModel : ViewModel() {
     }
 
 
-
-
-
-
-
     fun deleteDog(dog: Dog) {
-        _dogs.remove(dog)
+        ddogs.remove(dog)
     }
 
     fun toggleLike(dog: Dog) {
-        val index = _dogs.indexOf(dog)
+        val index = ddogs.indexOf(dog)
         if (index != -1) {
-            _dogs[index] = dog.copy(isLiked = !dog.isLiked)
+            ddogs[index] = dog.copy(isLiked = !dog.isLiked)
         }
     }
 
