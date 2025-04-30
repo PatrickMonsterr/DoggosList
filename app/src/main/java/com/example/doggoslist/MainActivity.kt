@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -20,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.doggoslist.model.AddDogViewModel
 import com.example.doggoslist.model.DogDetailViewModel
 import com.example.doggoslist.model.DogViewModel
+import com.example.doggoslist.model.DogViewModelFactory
 //import com.example.doggoslist.model.addDogViewModel
 import com.example.doggoslist.ui.screens.MainScreen.TopBar
 import com.example.doggoslist.ui.screens.MainScreen.SearchBar
@@ -47,7 +49,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             DoggosListTheme {
                 val navController = rememberNavController()
-                val dogViewModel: DogViewModel = viewModel()
+                val context = LocalContext.current
+                val application = context.applicationContext as DoggoApplication
+                val dogDao = application.database.dogDao()
+                val dogViewModel: DogViewModel = viewModel(factory = DogViewModelFactory(dogDao))
+
                 val addDogViewModel: AddDogViewModel = viewModel()
                 Scaffold(
                     modifier = Modifier

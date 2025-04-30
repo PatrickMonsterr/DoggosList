@@ -6,30 +6,31 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doggoslist.Dog
+import com.verticalcoding.mystudentlist.data.local.database.DogEntityDao
 import kotlinx.coroutines.launch
 
-class DogViewModel : ViewModel() {
+class DogViewModel(private val dogDao: DogEntityDao) : ViewModel() {
+
+    init {
+        loadDogsFromDb()
+    }
 
     val ddogs = mutableStateListOf<Dog>()
-//    var isLoading by mutableStateOf(false)
-//        private set
-//
-//    var isError by mutableStateOf(false)
-//        private set
-    fun addDog(name: String, breed: String, url: String?) {
-        viewModelScope.launch {
-//            isLoading = true
-//            isError = false
+fun addDog(name: String, breed: String, url: String?) {
+    viewModelScope.launch {
+        val dog = Dog(name = name, breed = breed, imageUrl = url)
+        ddogs.add(0, dog)
 
-            try {
-                ddogs.add(0, Dog(name = name, breed = breed, imageUrl = url))
-//                isLoading = false
-            } catch (_: Exception) {
-//                isError = true
-//                isLoading = false
-            }
-        }
+        val dogEntity = com.verticalcoding.mystudentlist.data.local.database.DogEntity(
+            name = name,
+            breed = breed,
+            isLiked = false,
+            imageUrl = url
+        )
+        dogDao.insertDog(dogEntity)
     }
+}
+
 
 
     val dogs: List<Dog> get() = ddogs
@@ -64,6 +65,22 @@ class DogViewModel : ViewModel() {
             ddogs[index] = dog.copy(isLiked = !dog.isLiked)
         }
     }
+    private fun loadDogsFromDb() {
+        viewModelScope.launch {
+            dogDao.getAllDogs().collect { dogEntities ->
+                ddogs.clear()
+                ddogs.addAll(dogEntities.map { entity ->
+                    Dog(
+                        name = entity.name,
+                        breed = entity.breed,
+                        imageUrl = entity.imageUrl,
+                        isLiked = entity.isLiked
+                    )
+                })
+            }
+        }
+    }
+
 
 
 }
