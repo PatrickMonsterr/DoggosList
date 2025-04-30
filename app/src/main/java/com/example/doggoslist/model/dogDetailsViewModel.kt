@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import com.example.doggoslist.Dog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
 
 class DogDetailViewModel : ViewModel() {
 
