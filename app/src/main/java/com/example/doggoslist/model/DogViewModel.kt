@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doggoslist.Dog
+import com.verticalcoding.mystudentlist.data.local.database.DogEntity
 import com.verticalcoding.mystudentlist.data.local.database.DogEntityDao
 import kotlinx.coroutines.launch
 
@@ -21,7 +22,7 @@ fun addDog(name: String, breed: String, url: String?) {
         val dog = Dog(name = name, breed = breed, imageUrl = url)
         ddogs.add(0, dog)
 
-        val dogEntity = com.verticalcoding.mystudentlist.data.local.database.DogEntity(
+        val dogEntity = DogEntity(
             name = name,
             breed = breed,
             isLiked = false,
@@ -56,15 +57,25 @@ fun addDog(name: String, breed: String, url: String?) {
 
 
     fun deleteDog(dog: Dog) {
-        ddogs.remove(dog)
+        viewModelScope.launch {
+            ddogs.remove(dog)
+            dogDao.deleteDogByNameAndBreed(dog.name, dog.breed)
+        }
     }
+
 
     fun toggleLike(dog: Dog) {
         val index = ddogs.indexOf(dog)
         if (index != -1) {
-            ddogs[index] = dog.copy(isLiked = !dog.isLiked)
+            val updatedDog = dog.copy(isLiked = !dog.isLiked)
+            ddogs[index] = updatedDog
+
+            viewModelScope.launch {
+                dogDao.updateLikeStatus(dog.name, dog.breed, updatedDog.isLiked)
+            }
         }
     }
+
     private fun loadDogsFromDb() {
         viewModelScope.launch {
             dogDao.getAllDogs().collect { dogEntities ->

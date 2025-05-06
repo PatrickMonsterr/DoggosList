@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface DogEntityDao {
 
+
+
     @Query("SELECT * FROM dogs")
     fun getAllDogs(): Flow<List<DogEntity>>
 
@@ -25,4 +27,13 @@ interface DogEntityDao {
 
     @Query("DELETE FROM dogs WHERE uid = :id")
     suspend fun removeDog(id: Int)
+
+    @Query("DELETE FROM dogs WHERE name = :name AND breed = :breed")
+    suspend fun deleteDogByNameAndBreed(name: String, breed: String)
+
+    @Query("UPDATE dogs SET isLiked = :liked WHERE name = :name AND breed = :breed")
+    suspend fun updateLikeStatus(name: String, breed: String, liked: Boolean)
+
+
+
 }
